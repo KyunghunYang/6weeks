@@ -10,7 +10,22 @@ st.title("☀️ Prophet Sunspot Forecast Dashboard")
 
 @st.cache_data
 def load_prophet_data():
-    df = pd.read_csv("sunspots_for_prophet.csv")
+    try:
+        df = pd.read_csv("sunspots_for_prophet.csv")
+    except Exception:
+        try:
+            df = pd.read_csv("data/sunspots.csv")
+            df['YEAR'] = df['YEAR'].astype(int)
+            df = df[(df['YEAR'] >= 1900) & (df['YEAR'] <= 2008)]
+            df['ds'] = pd.to_datetime(df['YEAR'].astype(str), format='%Y')
+            df = df[['ds', 'SUNACTIVITY']].rename(columns={'SUNACTIVITY': 'y'})
+        except Exception:
+            import statsmodels.api as sm
+            df = sm.datasets.sunspots.load_pandas().data
+            df['YEAR'] = df['YEAR'].astype(int)
+            df = df[(df['YEAR'] >= 1900) & (df['YEAR'] <= 2008)]
+            df['ds'] = pd.to_datetime(df['YEAR'].astype(str), format='%Y')
+            df = df[['ds', 'SUNACTIVITY']].rename(columns={'SUNACTIVITY': 'y'})
     df['ds'] = pd.to_datetime(df['ds'])
     return df
 
@@ -24,7 +39,11 @@ try:
     m.add_seasonality(name='sunspot_cycle', period=11, fourier_order=5)
     m.fit(data)
 
-    future = m.make_future_dataframe(periods=periods, freq='YE')
+    try:
+        future = m.make_future_dataframe(periods=periods, freq='YE')
+    except Exception:
+        future = m.make_future_dataframe(periods=periods, freq='Y')
+
     forecast = m.predict(future)
 
     fig1 = m.plot(forecast)
