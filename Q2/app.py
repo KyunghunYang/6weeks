@@ -34,7 +34,6 @@ def plot_advanced_sunspot_visualizations(df, sunactivity_col='SUNACTIVITY'):
     if len(data) > 0:  # 데이터가 있는지 확인
         xs = np.linspace(data.min(), data.max(), 200)
         density = gaussian_kde(data)
-
         axs[0, 1].hist(data, bins=30, density=True, alpha=0.6, color='gray', label='Histogram')
         axs[0, 1].plot(xs, density(xs), color='red', linewidth=2, label='Density')
     axs[0, 1].set_title("Distribution of Sunspot Activity")
