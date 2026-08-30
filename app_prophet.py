@@ -24,7 +24,7 @@ try:
     m.add_seasonality(name='sunspot_cycle', period=11, fourier_order=5)
     m.fit(data)
 
-    future = m.make_future_dataframe(periods=periods, freq='Y')
+    future = m.make_future_dataframe(periods=periods, freq='YE')
     forecast = m.predict(future)
 
     fig1 = m.plot(forecast)
