@@ -1,17 +1,19 @@
 # --------------------------------------------
-# Streamlit 시각화 + 인터랙션 추가 (Q3 App)
+# Streamlit 시각화 + 인터랙션 추가
+# sunspots.csv 파일이 에디터 폴더의 data/ 아래에 있어야 합니다.
+# 연도범위, 히스토그램 구간 수, 추세선 차수, 산점도 점 크기, 산점도 투명도를 조절할 수 있는 기능을 추가합니다.
 # --------------------------------------------
 import streamlit as st
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import gaussian_kde
-import os
 
 @st.cache_data
 def load_data(file_path):
     df = pd.read_csv(file_path)
     if 'YEAR' in df.columns:
+        # 소수점 제거 후 정수로 변환 및 Datetime 인덱스 생성
         df['YEAR_INT'] = df['YEAR'].astype(int)
         df['DATE'] = pd.to_datetime(df['YEAR_INT'].astype(str), format='%Y')
         df.set_index('DATE', inplace=True)
@@ -32,11 +34,14 @@ def plot_advanced_sunspot_visualizations(df, sunactivity_col='SUNACTIVITY',
 
     # (b) 분포: 히스토그램 + 커널 밀도
     data = df[sunactivity_col].dropna().values
-    if len(data) > 0:
+    if len(data) > 0:  # 데이터 유효성 확인
         xs = np.linspace(data.min(), data.max(), 200)
         density = gaussian_kde(data)
+
+        # 히스토그램 시각화
         axs[0, 1].hist(data, bins=hist_bins, density=True, alpha=0.6, color='gray', label='Histogram')
         axs[0, 1].plot(xs, density(xs), color='red', linewidth=2, label='Density')
+
     axs[0, 1].set_title("Distribution of Sunspot Activity")
     axs[0, 1].set_xlabel("Sunspot Count")
     axs[0, 1].set_ylabel("Density")
@@ -47,6 +52,7 @@ def plot_advanced_sunspot_visualizations(df, sunactivity_col='SUNACTIVITY',
     try:
         df_20th = df.loc["1900":"2000"]
         if not df_20th.empty:
+            # 박스플롯 시각화
             axs[1, 0].boxplot(df_20th[sunactivity_col].dropna(), vert=False)
     except:
         pass
@@ -57,6 +63,7 @@ def plot_advanced_sunspot_visualizations(df, sunactivity_col='SUNACTIVITY',
     years = df['YEAR'].values
     sun_activity = df[sunactivity_col].values
 
+    # NaN 값 제거
     mask = ~np.isnan(sun_activity)
     years_clean = years[mask]
     sun_activity_clean = sun_activity[mask]
@@ -65,8 +72,11 @@ def plot_advanced_sunspot_visualizations(df, sunactivity_col='SUNACTIVITY',
         axs[1, 1].scatter(years_clean, sun_activity_clean, s=point_size, alpha=point_alpha, label='Data Points')
         coef = np.polyfit(years_clean, sun_activity_clean, trend_degree)
         trend = np.poly1d(coef)
+
+        # 추세선을 그리기 위한 x 값 생성
         x_trend = np.linspace(years_clean.min(), years_clean.max(), 100)
         axs[1, 1].plot(x_trend, trend(x_trend), color='red', linewidth=2, label='Trend Line')
+
     axs[1, 1].set_title("Trend of Sunspot Activity")
     axs[1, 1].set_xlabel("Year")
     axs[1, 1].set_ylabel("Sunspot Count")
@@ -83,11 +93,13 @@ st.markdown("""
     """)
 
 try:
-    file_path = 'data/sunspots.csv' if os.path.exists('data/sunspots.csv') else 'sunspots.csv'
-    df = load_data(file_path)
+    # 데이터 로드
+    df = load_data('data/sunspots.csv')
 
+    # 사이드바 제목/헤더 설정 (이미지와 동일)
     st.sidebar.header('시각화 파라미터 조절')
 
+    # 연도 범위 선택
     min_year = int(df['YEAR_INT'].min())
     max_year = int(df['YEAR_INT'].max())
     year_range = st.sidebar.slider(
@@ -97,6 +109,7 @@ try:
         value=(min_year, max_year)
     )
 
+    # 히스토그램 빈(bin) 수 조절
     hist_bins = st.sidebar.slider(
         '히스토그램 구간 수',
         min_value=5,
@@ -104,6 +117,7 @@ try:
         value=30
     )
 
+    # 추세선 차수 조절
     trend_degree = st.sidebar.slider(
         '추세선 차수',
         min_value=1,
@@ -111,6 +125,7 @@ try:
         value=1
     )
 
+    # 산점도 점 크기 조절 (범위: 5 ~ 50)
     point_size = st.sidebar.slider(
         '산점도 점 크기',
         min_value=5,
@@ -118,6 +133,7 @@ try:
         value=10
     )
 
+    # 산점도 투명도 조절 (범위: 0.10 ~ 1.00)
     point_alpha = st.sidebar.slider(
         '산점도 투명도',
         min_value=0.10,
@@ -126,8 +142,10 @@ try:
         step=0.05
     )
 
+    # 필터링된 데이터
     filtered_df = df[(df['YEAR_INT'] >= year_range[0]) & (df['YEAR_INT'] <= year_range[1])]
 
+    # 시각화
     if not filtered_df.empty:
         st.subheader('태양흑점 데이터 종합 시각화')
         fig = plot_advanced_sunspot_visualizations(
